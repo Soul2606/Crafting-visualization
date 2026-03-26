@@ -39,16 +39,20 @@ const items = await loadJson<Record<string, ItemSchema>>("./game-data/items.json
 
 const recipes = (await loadJson<RecipeSchema[]>("./game-data/recipes.json")).map<Recipe>((rec, idx) => ({
 	...rec,
-	id:"r:"+idx
+	id:"r "+idx
 }))
+
+const recipesUsed = new Set<string>()
 
 const isDryRun = Deno.args.includes("-dry") || Deno.args.includes("--dry")
 
 function use(id:string) {
-	return recipes.filter(rec =>
+	const ids = recipes.filter(rec =>
 		rec.inputs.some(input=>"id" in input && input.id === id)
 		&& rec.inputs.length > 1
 	).map(rec => rec.id)
+	ids.forEach(id => recipesUsed.add(id))
+	return ids
 }
 
 function directUse(id:string) {
@@ -84,4 +88,18 @@ ${use(key).map(i => `- [[${i}]]`).join("\n")}
 `
 
 	write(`Obsidian/Items/${item.name}.md`, content)
+}
+
+for (const id of recipesUsed) {
+	const recipe = recipes.find(rec => rec.id === id);
+	if (recipe === undefined) continue
+	
+		const content = 
+`# ${recipe.id}
+
+Outputs:
+${recipe.outputs.map(op => `- [[${items[op.id].name}]]`).join("\n")}
+`
+
+	write(`Obsidian/Recipes/${id}.md`, content)
 }
