@@ -64,6 +64,7 @@ function directUse(id:string) {
 }
 
 await Deno.mkdir("Obsidian/Items", { recursive: true })
+await Deno.mkdir("Obsidian/Recipes", { recursive: true })
 
 async function write(path:string, content:string) {
 		if (isDryRun) {
