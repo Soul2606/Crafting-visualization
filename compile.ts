@@ -28,6 +28,26 @@ type RecipeSchema = {
 	processTimeSeconds?:number
 }
 
+type MachineSchema = Record<string, {
+	readonly name: string
+	readonly tier: number
+	readonly capabilities: readonly string[]
+	readonly cost: readonly {id:string, amount:number, meta?:unknown}[]
+	readonly img?: string
+	readonly fuelNeeds?: {
+		readonly tags: readonly string[],
+		readonly energy: string
+	}
+	readonly energyNeeds?: {
+		readonly voltageTier: number,
+		readonly energy: string
+	}
+	readonly workerNeeds?: {
+		readonly minimum: number,
+		readonly maximum: number
+	}
+}>
+
 type Recipe = RecipeSchema & {id:string}
 
 async function loadJson<T>(path: string): Promise<T> {
@@ -42,6 +62,8 @@ const recipes = (await loadJson<RecipeSchema[]>("./game-data/recipes.json")).map
 	id:"r "+idx
 }))
 
+const machines = await loadJson<MachineSchema>("./game-data/machines.json")
+
 const recipesUsed = new Set<string>()
 
 const isDryRun = Deno.args.includes("-dry") || Deno.args.includes("--dry")
@@ -53,6 +75,12 @@ function use(id:string) {
 	).map(rec => rec.id)
 	ids.forEach(id => recipesUsed.add(id))
 	return ids
+}
+
+function mUse(id:string) {
+	return Object.values(machines).filter(value=>
+		value.cost.some(c => c.id === id)
+	).map(v => v.name)
 }
 
 function directUse(id:string) {
@@ -85,7 +113,9 @@ for (const key in items) {
 Direct use:
 ${directUse(key).map(i => `- [[${i}]]`).join("\n")}
 Recipe use:
-${use(key).map(i => `- [[${i}]]`).join("\n")}
+${use(key)      .map(i => `- [[${i}]]`).join("\n")}
+Machine use:
+${mUse(key)     .map(i => `- [[${i}]]`).join("\n")}
 `
 
 	write(`Obsidian/Items/${item.name}.md`, content)
